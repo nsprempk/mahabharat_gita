@@ -5,6 +5,8 @@ import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
 import Loader from "./components/common/Loader";
 
+import { LanguageProvider } from "./context/LanguageContext";
+
 // Lazy load pages
 const Home = lazy(() => import("./pages/Home"));
 const Chapters = lazy(() => import("./pages/Chapters"));
@@ -26,39 +28,41 @@ function PageLoader() {
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-spiritual-cream">
-      <Navbar />
+    <LanguageProvider>
+      <div className="min-h-screen bg-spiritual-cream">
+        <Navbar />
 
-      <main>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/" element={<Home />} />
+        <main>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/" element={<Home />} />
 
-            <Route path="/adhyay" element={<Chapters />} />
+              <Route path="/adhyay" element={<Chapters />} />
 
-            <Route path="/adhyay/:chapterNumber" element={<Chapter />} />
+              <Route path="/adhyay/:chapterNumber" element={<Chapter />} />
 
-            <Route
-              path="/adhyay/:chapterNumber/shloka/:shlokaNumber"
-              element={<Chapter />}
-            />
+              <Route
+                path="/adhyay/:chapterNumber/shloka/:shlokaNumber"
+                element={<Chapter />}
+              />
 
-            <Route path="/search" element={<Search />} />
+              <Route path="/search" element={<Search />} />
 
-            <Route path="/bookmarks" element={<Bookmarks />} />
+              <Route path="/bookmarks" element={<Bookmarks />} />
 
-            <Route path="/about" element={<About />} />
+              <Route path="/about" element={<About />} />
 
-            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
-            <Route path="/contact" element={<Contact />} />
+              <Route path="/contact" element={<Contact />} />
 
-            <Route path="/terms-and-conditions" element={<Terms />} />
-          </Routes>
-        </Suspense>
-      </main>
+              <Route path="/terms-and-conditions" element={<Terms />} />
+            </Routes>
+          </Suspense>
+        </main>
 
-      <Footer />
-    </div>
+        <Footer />
+      </div>
+    </LanguageProvider>
   );
 }

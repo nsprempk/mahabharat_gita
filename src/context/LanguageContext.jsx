@@ -1,20 +1,32 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
 const LanguageContext = createContext(null);
 
 export function LanguageProvider({ children }) {
-  const [language, setLanguage] = useState("hi");
+  const [language, setLanguage] = useState(() => {
+    const savedLanguage = localStorage.getItem("gita-language");
 
-  const toggleLanguage = () => {
-    setLanguage((current) => (current === "hi" ? "en" : "hi"));
+    return savedLanguage === "en" ? "en" : "hi";
+  });
+
+  const changeLanguage = (newLanguage) => {
+    if (newLanguage !== "hi" && newLanguage !== "en") {
+      return;
+    }
+
+    setLanguage(newLanguage);
+    localStorage.setItem("gita-language", newLanguage);
   };
+
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
 
   return (
     <LanguageContext.Provider
       value={{
         language,
-        setLanguage,
-        toggleLanguage,
+        changeLanguage,
       }}
     >
       {children}
