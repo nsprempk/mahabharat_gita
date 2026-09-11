@@ -4,7 +4,8 @@ import AudioPlayer from "./AudioPlayer";
 
 export default function ShlokaCard({ shloka, language = "hi" }) {
   /*
-   * Support MongoDB and older frontend field names.
+   * Support both MongoDB field names
+   * and older frontend field names.
    */
 
   const verseNumber =
@@ -21,15 +22,48 @@ export default function ShlokaCard({ shloka, language = "hi" }) {
   const meaning = language === "hi" ? hindiMeaning : englishMeaning;
 
   /*
-   * Audio URLs.
+   * --------------------------------------------------
+   * Clean meaning for text-to-speech
+   * --------------------------------------------------
    *
-   * If these exist in MongoDB, AudioPlayer will use
-   * the real audio file.
+   * Removes things such as:
    *
-   * If they don't exist, AudioPlayer automatically
-   * uses browser Text-to-Speech.
+   * ।।1.1।।
+   * ।।१.१।।
+   * (टिप्पणी प0 1.2)
+   * (टिप्पणी प0 1.3)
+   *
+   * The actual meaning remains.
    */
+  const cleanMeaningForAudio = (text) => {
+    if (!text) return "";
 
+    return (
+      text
+        // Remove shloka numbering such as ।।1.1।। or ।।१.१।।
+        .replace(/।।\s*[०-९0-9]+\s*[.:।-]\s*[०-९0-9]+\s*।।/g, "")
+
+        // Remove commentary references such as:
+        // (टिप्पणी प0 1.2)
+        // (टिप्पणी प० 1.2)
+        .replace(
+          /\(\s*टिप्पणी\s*प[०-९0-9oO0]*\.?\s*[०-९0-9]+(?:\.[०-९0-9]+)?\s*\)/gi,
+          "",
+        )
+
+        // Remove extra spaces left after cleaning
+        .replace(/\s{2,}/g, " ")
+
+        // Remove spaces at beginning/end
+        .trim()
+    );
+  };
+
+  const meaningAudioText = cleanMeaningForAudio(meaning);
+
+  /*
+   * Audio
+   */
   const shlokaAudio = shloka?.audio?.shloka ?? null;
 
   const meaningAudio =
@@ -38,9 +72,10 @@ export default function ShlokaCard({ shloka, language = "hi" }) {
       : (shloka?.audio?.englishMeaning ?? null);
 
   /*
-   * Bookmark UI.
+   * Bookmark
    *
-   * Bookmark API will be connected later.
+   * UI only for now.
+   * We will connect this to the user/bookmark API later.
    */
   const isBookmarked = false;
 
@@ -75,8 +110,6 @@ export default function ShlokaCard({ shloka, language = "hi" }) {
       <div className="mt-7">
         <AudioPlayer
           audio={shlokaAudio}
-          text={sanskrit}
-          language="hi"
           label={language === "hi" ? "श्लोक सुनें" : "Listen to Shloka"}
         />
       </div>
@@ -107,7 +140,7 @@ export default function ShlokaCard({ shloka, language = "hi" }) {
       <div className="mt-6">
         <AudioPlayer
           audio={meaningAudio}
-          text={meaning}
+          text={meaningAudioText}
           language={language}
           label={
             language === "hi" ? "हिंदी अर्थ सुनें" : "Listen to English Meaning"
