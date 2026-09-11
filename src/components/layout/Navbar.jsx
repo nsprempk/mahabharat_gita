@@ -28,7 +28,7 @@ export default function Navbar() {
 
             <div>
               <div className="sanskrit text-lg font-bold text-spiritual-brown">
-                भगवद्गीता
+                श्रीमद्भगवद्गीता
               </div>
 
               <div className="text-xs text-saffron-700">Bhagavad Gita</div>
