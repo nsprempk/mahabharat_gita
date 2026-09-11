@@ -110,6 +110,8 @@ export default function ShlokaCard({ shloka, language = "hi" }) {
       <div className="mt-7">
         <AudioPlayer
           audio={shlokaAudio}
+          text={sanskrit}
+          language="hi"
           label={language === "hi" ? "श्लोक सुनें" : "Listen to Shloka"}
         />
       </div>

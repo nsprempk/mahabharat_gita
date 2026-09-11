@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pause, Play, Volume2 } from "lucide-react";
 
 export default function AudioPlayer({
@@ -12,21 +12,21 @@ export default function AudioPlayer({
   const [voices, setVoices] = useState([]);
 
   const audioRef = useRef(null);
+  const utteranceRef = useRef(null);
 
-  const audioUrl = useMemo(() => {
-    if (typeof audio === "string") {
-      return audio;
-    }
-
-    if (audio && typeof audio === "object") {
-      return audio?.[voice] || "";
-    }
-
-    return "";
-  }, [audio, voice]);
+  /*
+   * Real audio URL
+   */
+  const audioUrl =
+    typeof audio === "string"
+      ? audio
+      : audio && typeof audio === "object"
+        ? audio?.[voice] || ""
+        : "";
 
   const hasRealAudio = Boolean(audioUrl);
   const hasText = Boolean(text?.trim());
+
   const canPlay = hasRealAudio || hasText;
 
   /*
@@ -38,7 +38,9 @@ export default function AudioPlayer({
     }
 
     const loadVoices = () => {
-      setVoices(window.speechSynthesis.getVoices());
+      const availableVoices = window.speechSynthesis.getVoices();
+
+      setVoices(availableVoices);
     };
 
     loadVoices();
@@ -51,7 +53,7 @@ export default function AudioPlayer({
   }, []);
 
   /*
-   * Cleanup
+   * Stop everything when component is removed
    */
   useEffect(() => {
     return () => {
@@ -66,64 +68,113 @@ export default function AudioPlayer({
   }, []);
 
   /*
-   * Stop audio when voice changes
+   * Stop when voice changes
    */
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-    }
-
-    if ("speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-    }
-
-    setPlaying(false);
+    stopAudio();
   }, [voice]);
 
   /*
-   * Find suitable browser voice
+   * Get language
+   *
+   * Sanskrit is spoken using Hindi voice because
+   * browser TTS usually does not provide Sanskrit voices.
+   */
+  const getLanguageCode = () => {
+    if (language === "en") {
+      return "en-IN";
+    }
+
+    return "hi-IN";
+  };
+
+  /*
+   * Find a suitable voice
    */
   const getSpeechVoice = () => {
     if (!voices.length) {
       return null;
     }
 
-    const languageCode = language === "hi" ? "hi-IN" : "en-IN";
+    const languageCode = getLanguageCode();
 
-    const matchingVoices = voices.filter((item) =>
-      item.lang?.toLowerCase().startsWith(languageCode.toLowerCase()),
+    /*
+     * First try exact language.
+     */
+    let languageVoices = voices.filter(
+      (item) => item.lang?.toLowerCase() === languageCode.toLowerCase(),
     );
 
-    const pool = matchingVoices.length > 0 ? matchingVoices : voices;
+    /*
+     * Then try language family.
+     */
+    if (!languageVoices.length) {
+      languageVoices = voices.filter((item) =>
+        item.lang?.toLowerCase().startsWith(languageCode.substring(0, 2)),
+      );
+    }
 
-    const femaleKeywords = [
+    /*
+     * If no matching language exists,
+     * don't randomly choose an unrelated voice.
+     */
+    if (!languageVoices.length) {
+      return null;
+    }
+
+    /*
+     * Try to find male/female voice.
+     *
+     * Browser voice names are inconsistent,
+     * so this is only a best effort.
+     */
+    const femaleWords = [
       "female",
       "woman",
-      "zira",
       "samantha",
       "veena",
       "heera",
+      "google hindi female",
     ];
 
-    const maleKeywords = ["male", "man", "ravi", "hemant"];
+    const maleWords = ["male", "man", "ravi", "hemant", "google hindi male"];
 
-    const keywords = voice === "female" ? femaleKeywords : maleKeywords;
+    const keywords = voice === "female" ? femaleWords : maleWords;
 
-    const matchingVoice = pool.find((item) => {
+    const selected = languageVoices.find((item) => {
       const name = item.name?.toLowerCase() || "";
 
       return keywords.some((keyword) => name.includes(keyword));
     });
 
-    return matchingVoice || pool[0] || null;
+    return selected || languageVoices[0];
   };
 
   /*
-   * Real audio
+   * Stop audio
+   */
+  const stopAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+
+    utteranceRef.current = null;
+
+    setPlaying(false);
+  };
+
+  /*
+   * Play real audio
    */
   const playRealAudio = async () => {
     try {
+      /*
+       * Create audio player if needed
+       */
       if (!audioRef.current) {
         const player = new Audio(audioUrl);
 
@@ -140,36 +191,56 @@ export default function AudioPlayer({
         audioRef.current = player;
       }
 
+      /*
+       * If URL changed, reload it.
+       */
+      if (audioRef.current.src !== audioUrl) {
+        audioRef.current.src = audioUrl;
+        audioRef.current.load();
+      }
+
       await audioRef.current.play();
 
       setPlaying(true);
     } catch (error) {
       console.error("Audio playback error:", error);
 
-      setPlaying(false);
+      /*
+       * If real audio fails but text exists,
+       * fall back to TTS.
+       */
+      if (hasText) {
+        playSpeech();
+      } else {
+        setPlaying(false);
+      }
     }
   };
 
   /*
-   * Browser TTS
+   * Text-to-speech
    */
   const playSpeech = () => {
     if (!("speechSynthesis" in window)) {
       alert(
-        "Audio playback is not supported by this browser. Please use Google Chrome.",
+        "Text-to-speech is not supported by this browser. Please use Chrome.",
       );
 
       return;
     }
 
     if (!hasText) {
-      alert("No text is available for audio playback.");
+      alert("No text is available for audio.");
+
       return;
     }
 
+    /*
+     * Stop previous speech
+     */
     window.speechSynthesis.cancel();
 
-    const utterance = new SpeechSynthesisUtterance(text);
+    const utterance = new SpeechSynthesisUtterance(text.trim());
 
     const selectedVoice = getSpeechVoice();
 
@@ -177,11 +248,23 @@ export default function AudioPlayer({
       utterance.voice = selectedVoice;
       utterance.lang = selectedVoice.lang;
     } else {
-      utterance.lang = language === "hi" ? "hi-IN" : "en-IN";
+      utterance.lang = getLanguageCode();
     }
 
-    utterance.rate = 0.85;
+    /*
+     * Natural speaking speed
+     */
+    utterance.rate = language === "hi" ? 0.82 : 0.9;
+
+    /*
+     * Slight difference between male/female.
+     *
+     * This does NOT create a real male/female voice.
+     * It only changes pitch if the browser uses
+     * the same voice.
+     */
     utterance.pitch = voice === "female" ? 1.05 : 0.9;
+
     utterance.volume = 1;
 
     utterance.onstart = () => {
@@ -190,13 +273,17 @@ export default function AudioPlayer({
 
     utterance.onend = () => {
       setPlaying(false);
+      utteranceRef.current = null;
     };
 
     utterance.onerror = (event) => {
       console.error("Speech synthesis error:", event);
 
       setPlaying(false);
+      utteranceRef.current = null;
     };
+
+    utteranceRef.current = utterance;
 
     window.speechSynthesis.speak(utterance);
   };
@@ -210,18 +297,16 @@ export default function AudioPlayer({
     }
 
     if (playing) {
-      if (hasRealAudio && audioRef.current) {
-        audioRef.current.pause();
-      }
-
-      if ("speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
-      }
-
-      setPlaying(false);
+      stopAudio();
       return;
     }
 
+    /*
+     * Prefer real audio.
+     *
+     * If no real audio exists,
+     * use Text-to-Speech.
+     */
     if (hasRealAudio) {
       await playRealAudio();
     } else {
@@ -230,26 +315,18 @@ export default function AudioPlayer({
   };
 
   /*
-   * Voice change
+   * Voice selection
    */
   const handleVoiceChange = (newVoice) => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-    }
+    stopAudio();
 
-    if ("speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-    }
-
-    setPlaying(false);
     setVoice(newVoice);
   };
 
   return (
     <div className="rounded-2xl border-2 border-[#ead8bd] bg-[#fffaf2] p-4">
       <div className="flex flex-wrap items-center gap-4">
-        {/* PLAY / PAUSE BUTTON */}
+        {/* PLAY BUTTON */}
         <button
           type="button"
           onClick={handlePlay}
@@ -262,23 +339,23 @@ export default function AudioPlayer({
             border-2
             border-[#5b321f]
             shadow-lg
-            transition-all
+            transition
             duration-200
             ${
               canPlay
-                ? "bg-[#7a421f] text-white hover:bg-[#542b18] hover:scale-105 active:scale-95"
-                : "cursor-not-allowed bg-gray-300 text-gray-500 border-gray-400"
+                ? "bg-[#7a421f] text-white hover:scale-105 hover:bg-[#542b18] active:scale-95"
+                : "cursor-not-allowed border-gray-400 bg-gray-300 text-gray-500"
             }
           `}
         >
           {playing ? (
-            <Pause size={26} strokeWidth={3.5} className="text-white" />
+            <Pause size={26} strokeWidth={3} className="text-white" />
           ) : (
             <Play
               size={26}
-              strokeWidth={3.5}
+              strokeWidth={3}
               fill="white"
-              className="text-white ml-0.5"
+              className="ml-0.5 text-white"
             />
           )}
         </button>
@@ -301,14 +378,12 @@ export default function AudioPlayer({
               : playing
                 ? "Playing..."
                 : hasRealAudio
-                  ? voice === "male"
-                    ? "Male Voice"
-                    : "Female Voice"
-                  : "Click play to listen"}
+                  ? "Audio ready"
+                  : "Tap play to listen"}
           </p>
         </div>
 
-        {/* VOICE SELECTOR */}
+        {/* VOICE */}
         <div className="flex rounded-full border-2 border-[#d9c0a0] bg-white p-1 shadow-sm">
           <button
             type="button"
