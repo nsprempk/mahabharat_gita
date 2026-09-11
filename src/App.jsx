@@ -9,6 +9,9 @@ import Chapter from "./pages/Chapter";
 import Search from "./pages/Search";
 import Bookmarks from "./pages/Bookmarks";
 import About from "./pages/About";
+import Contact from "./pages/Contact";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import Terms from "./pages/Terms";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 
@@ -20,16 +23,30 @@ export default function App() {
       <main>
         <Routes>
           <Route path="/" element={<Home />} />
+
           <Route path="/adhyay" element={<Chapters />} />
+
           <Route path="/adhyay/:chapterNumber" element={<Chapter />} />
+
           <Route
             path="/adhyay/:chapterNumber/shloka/:shlokaNumber"
             element={<Chapter />}
           />
+
           <Route path="/search" element={<Search />} />
+
           <Route path="/bookmarks" element={<Bookmarks />} />
+
           <Route path="/about" element={<About />} />
+
+          <Route path="/contact" element={<Contact />} />
+
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+
+          <Route path="/terms" element={<Terms />} />
+
           <Route path="/login" element={<Login />} />
+
           <Route path="/signup" element={<Signup />} />
         </Routes>
       </main>
