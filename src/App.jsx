@@ -12,8 +12,6 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Terms from "./pages/Terms";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
 
 export default function App() {
   return (
@@ -44,10 +42,6 @@ export default function App() {
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
           <Route path="/terms" element={<Terms />} />
-
-          <Route path="/login" element={<Login />} />
-
-          <Route path="/signup" element={<Signup />} />
         </Routes>
       </main>
 
