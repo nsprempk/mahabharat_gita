@@ -52,7 +52,7 @@ export default function Home() {
 
             {/* Main heading */}
             <h1 className="sanskrit text-5xl font-extrabold leading-tight text-spiritual-brown sm:text-6xl">
-              भगवद्गीता
+              श्रीमद्भगवद्गीता
             </h1>
 
             {/* Tagline */}
@@ -116,7 +116,7 @@ export default function Home() {
           ====================================================== */}
           <div className="relative overflow-hidden rounded-[32px] bg-[#f4eadb] shadow-2xl">
             <img
-              src="/images/krishna-mahabharata.png"
+              src="/images/krishna.png"
               alt="Lord Krishna from the Mahabharata"
               className="h-[620px] w-full object-cover"
             />
