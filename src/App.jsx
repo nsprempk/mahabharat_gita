@@ -1,17 +1,28 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 
 import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
+import Loader from "./components/common/Loader";
 
-import Home from "./pages/Home";
-import Chapters from "./pages/Chapters";
-import Chapter from "./pages/Chapter";
-import Search from "./pages/Search";
-import Bookmarks from "./pages/Bookmarks";
-import About from "./pages/About";
-import Contact from "./pages/Contact";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import Terms from "./pages/Terms";
+// Lazy load pages
+const Home = lazy(() => import("./pages/Home"));
+const Chapters = lazy(() => import("./pages/Chapters"));
+const Chapter = lazy(() => import("./pages/Chapter"));
+const Search = lazy(() => import("./pages/Search"));
+const Bookmarks = lazy(() => import("./pages/Bookmarks"));
+const About = lazy(() => import("./pages/About"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const Contact = lazy(() => import("./pages/Contact"));
+const Terms = lazy(() => import("./pages/Terms"));
+
+function PageLoader() {
+  return (
+    <div className="flex min-h-[70vh] items-center justify-center bg-spiritual-cream">
+      <Loader />
+    </div>
+  );
+}
 
 export default function App() {
   return (
@@ -19,30 +30,32 @@ export default function App() {
       <Navbar />
 
       <main>
-        <Routes>
-          <Route path="/" element={<Home />} />
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/" element={<Home />} />
 
-          <Route path="/adhyay" element={<Chapters />} />
+            <Route path="/adhyay" element={<Chapters />} />
 
-          <Route path="/adhyay/:chapterNumber" element={<Chapter />} />
+            <Route path="/adhyay/:chapterNumber" element={<Chapter />} />
 
-          <Route
-            path="/adhyay/:chapterNumber/shloka/:shlokaNumber"
-            element={<Chapter />}
-          />
+            <Route
+              path="/adhyay/:chapterNumber/shloka/:shlokaNumber"
+              element={<Chapter />}
+            />
 
-          <Route path="/search" element={<Search />} />
+            <Route path="/search" element={<Search />} />
 
-          <Route path="/bookmarks" element={<Bookmarks />} />
+            <Route path="/bookmarks" element={<Bookmarks />} />
 
-          <Route path="/about" element={<About />} />
+            <Route path="/about" element={<About />} />
 
-          <Route path="/contact" element={<Contact />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
-          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/contact" element={<Contact />} />
 
-          <Route path="/terms" element={<Terms />} />
-        </Routes>
+            <Route path="/terms-and-conditions" element={<Terms />} />
+          </Routes>
+        </Suspense>
       </main>
 
       <Footer />

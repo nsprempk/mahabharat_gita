@@ -31,7 +31,22 @@ export default function Chapter() {
   const [bookmarked, setBookmarked] = useState([]);
 
   const currentChapterNumber = Number(chapterNumber);
+
   const requestedShlokaNumber = shlokaNumber ? Number(shlokaNumber) : null;
+
+  /*
+   * Get a reliable shloka number from the API object.
+   */
+  const getVerseNumber = (shloka) => {
+    return (
+      shloka?.verseNumber ??
+      shloka?.number ??
+      shloka?.verse ??
+      shloka?.shlokaNumber ??
+      shloka?.verse_no ??
+      null
+    );
+  };
 
   /*
    * Load chapter and shlokas
@@ -51,12 +66,6 @@ export default function Chapter() {
           return;
         }
 
-        /*
-         * Load both APIs separately.
-         *
-         * getChapter() returns chapter information.
-         * getShlokas() returns the shloka array.
-         */
         const [chapterData, shlokaData] = await Promise.all([
           getChapter(currentChapterNumber),
           getShlokas(currentChapterNumber),
@@ -88,7 +97,7 @@ export default function Chapter() {
   /*
    * Find requested shloka.
    *
-   * If no shloka number is present in URL,
+   * If no shloka number is present,
    * show the first shloka.
    */
   const currentIndex = useMemo(() => {
@@ -101,16 +110,24 @@ export default function Chapter() {
     }
 
     return shlokas.findIndex(
-      (shloka) => Number(shloka.verseNumber) === requestedShlokaNumber,
+      (shloka) => Number(getVerseNumber(shloka)) === requestedShlokaNumber,
     );
   }, [shlokas, requestedShlokaNumber]);
 
   const currentShloka = currentIndex >= 0 ? shlokas[currentIndex] : null;
 
+  const currentVerseNumber = currentShloka
+    ? getVerseNumber(currentShloka)
+    : null;
+
   /*
    * Open a specific shloka
    */
   const openShloka = (verseNumber) => {
+    if (verseNumber === null || verseNumber === undefined) {
+      return;
+    }
+
     navigate(`/adhyay/${currentChapterNumber}/shloka/${verseNumber}`);
   };
 
@@ -124,7 +141,7 @@ export default function Chapter() {
 
     const previous = shlokas[currentIndex - 1];
 
-    openShloka(previous.verseNumber);
+    openShloka(getVerseNumber(previous));
   };
 
   /*
@@ -137,7 +154,7 @@ export default function Chapter() {
 
     const next = shlokas[currentIndex + 1];
 
-    openShloka(next.verseNumber);
+    openShloka(getVerseNumber(next));
   };
 
   /*
@@ -201,7 +218,7 @@ export default function Chapter() {
 
           <Link
             to="/adhyay"
-            className="mt-6 inline-flex items-center gap-2 rounded-full bg-saffron-500 px-6 py-3 font-bold text-white transition hover:bg-saffron-600"
+            className="mt-6 inline-flex items-center gap-2 rounded-full bg-orange-600 px-6 py-3 font-bold text-white transition hover:bg-orange-700"
           >
             <ArrowLeft size={18} />
             Back to Chapters
@@ -226,7 +243,7 @@ export default function Chapter() {
 
           <Link
             to="/adhyay"
-            className="mt-6 inline-flex items-center gap-2 rounded-full bg-saffron-500 px-6 py-3 font-bold text-white"
+            className="mt-6 inline-flex items-center gap-2 rounded-full bg-orange-600 px-6 py-3 font-bold text-white"
           >
             <ArrowLeft size={18} />
             Back to Chapters
@@ -251,7 +268,7 @@ export default function Chapter() {
 
           <Link
             to={`/adhyay/${currentChapterNumber}`}
-            className="mt-6 inline-flex items-center gap-2 rounded-full bg-saffron-500 px-6 py-3 font-bold text-white"
+            className="mt-6 inline-flex items-center gap-2 rounded-full bg-orange-600 px-6 py-3 font-bold text-white"
           >
             <ArrowLeft size={18} />
             View Chapter
@@ -288,7 +305,7 @@ export default function Chapter() {
         {/* BACK TO CHAPTERS */}
         <Link
           to="/adhyay"
-          className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-saffron-700 transition hover:text-saffron-800"
+          className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-orange-700 transition hover:text-orange-800"
         >
           <ArrowLeft size={17} />
 
@@ -300,12 +317,13 @@ export default function Chapter() {
           <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-saffron-500 font-bold text-white shadow-md">
+                {/* CHAPTER NUMBER */}
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-orange-600 text-lg font-extrabold text-white shadow-md">
                   {chapterNumberDisplay}
                 </div>
 
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-saffron-600">
+                  <p className="text-xs font-bold uppercase tracking-widest text-orange-600">
                     {language === "hi"
                       ? `अध्याय ${chapterNumberDisplay}`
                       : `Chapter ${chapterNumberDisplay}`}
@@ -319,7 +337,7 @@ export default function Chapter() {
 
               {chapterSanskrit && (
                 <p
-                  className="mt-5 text-lg font-bold leading-8 text-saffron-700"
+                  className="mt-5 text-lg font-bold leading-8 text-orange-700"
                   lang="sa"
                 >
                   {chapterSanskrit}
@@ -333,10 +351,11 @@ export default function Chapter() {
               )}
             </div>
 
-            <div className="shrink-0 rounded-2xl bg-saffron-50 px-5 py-4 text-center">
-              <BookOpen size={22} className="mx-auto text-saffron-600" />
+            {/* SHLOKA COUNT */}
+            <div className="shrink-0 rounded-2xl bg-orange-50 px-5 py-4 text-center">
+              <BookOpen size={22} className="mx-auto text-orange-600" />
 
-              <p className="mt-2 text-2xl font-bold text-saffron-700">
+              <p className="mt-2 text-2xl font-bold text-orange-700">
                 {totalShlokas}
               </p>
 
@@ -360,11 +379,12 @@ export default function Chapter() {
         {currentShloka && (
           <div className="mt-8 rounded-3xl border border-saffron-100 bg-white p-4 shadow-sm sm:p-5">
             <div className="flex items-center justify-between gap-3">
+              {/* PREVIOUS SHLOKA */}
               <button
                 type="button"
                 onClick={goPreviousShloka}
                 disabled={currentIndex <= 0}
-                className="flex items-center gap-2 rounded-full border border-saffron-200 px-4 py-2.5 text-sm font-bold text-saffron-700 transition hover:bg-saffron-50 disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex items-center gap-2 rounded-full border border-orange-200 bg-white px-4 py-2.5 text-sm font-bold text-orange-700 transition hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <ChevronLeft size={18} />
 
@@ -375,23 +395,25 @@ export default function Chapter() {
                 <span className="sm:hidden">Previous</span>
               </button>
 
-              <div className="text-center">
-                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+              {/* CURRENT SHLOKA NUMBER */}
+              <div className="min-w-[80px] text-center">
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-400">
                   {language === "hi" ? "श्लोक" : "Shloka"}
                 </p>
 
-                <p className="text-lg font-bold text-saffron-700">
-                  {currentShloka.verseNumber}
+                <p className="mt-1 text-xl font-extrabold text-orange-700">
+                  {currentVerseNumber || "—"}
                   {" / "}
                   {shlokas.length}
                 </p>
               </div>
 
+              {/* NEXT SHLOKA */}
               <button
                 type="button"
                 onClick={goNextShloka}
                 disabled={currentIndex >= shlokas.length - 1}
-                className="flex items-center gap-2 rounded-full bg-saffron-500 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-saffron-600 disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex items-center gap-2 rounded-full bg-orange-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <span className="hidden sm:inline">
                   {language === "hi" ? "अगला श्लोक" : "Next Shloka"}
@@ -408,18 +430,19 @@ export default function Chapter() {
         {/* CURRENT SHLOKA */}
         {currentShloka ? (
           <div className="relative mt-8">
+            {/* Bookmark */}
             <button
               type="button"
-              onClick={() => toggleBookmark(currentShloka.verseNumber)}
+              onClick={() => toggleBookmark(currentVerseNumber)}
               title={
-                bookmarked.includes(currentShloka.verseNumber)
+                bookmarked.includes(currentVerseNumber)
                   ? "Remove bookmark"
                   : "Bookmark shloka"
               }
-              className="absolute right-5 top-5 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white text-gray-500 shadow-sm transition hover:bg-saffron-50 hover:text-saffron-600"
+              className="absolute right-5 top-5 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white text-gray-500 shadow-sm transition hover:bg-orange-50 hover:text-orange-600"
             >
-              {bookmarked.includes(currentShloka.verseNumber) ? (
-                <BookmarkCheck size={20} className="text-saffron-600" />
+              {bookmarked.includes(currentVerseNumber) ? (
+                <BookmarkCheck size={20} className="text-orange-600" />
               ) : (
                 <Bookmark size={20} />
               )}
@@ -453,23 +476,24 @@ export default function Chapter() {
             </div>
 
             <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10">
-              {shlokas.map((shloka) => {
+              {shlokas.map((shloka, index) => {
+                const shlokaNumber = getVerseNumber(shloka) ?? index + 1;
+
                 const isCurrent =
-                  Number(shloka.verseNumber) ===
-                  Number(currentShloka?.verseNumber);
+                  Number(shlokaNumber) === Number(currentVerseNumber);
 
                 return (
                   <button
-                    key={shloka._id || shloka.verseNumber}
+                    key={shloka._id || shlokaNumber || index}
                     type="button"
-                    onClick={() => openShloka(shloka.verseNumber)}
-                    className={`rounded-xl px-2 py-2.5 text-sm font-bold transition ${
+                    onClick={() => openShloka(shlokaNumber)}
+                    className={`min-h-11 rounded-xl px-2 py-2.5 text-sm font-extrabold transition ${
                       isCurrent
-                        ? "bg-saffron-500 text-white shadow-md"
-                        : "bg-saffron-50 text-saffron-700 hover:bg-saffron-100"
+                        ? "bg-orange-600 text-white shadow-md"
+                        : "bg-orange-50 text-orange-700 hover:bg-orange-100"
                     }`}
                   >
-                    {shloka.verseNumber}
+                    {shlokaNumber}
                   </button>
                 );
               })}
@@ -483,7 +507,7 @@ export default function Chapter() {
             type="button"
             onClick={goPreviousChapter}
             disabled={currentChapterNumber <= 1}
-            className="flex items-center justify-center gap-2 rounded-2xl border border-saffron-200 bg-white px-5 py-4 font-bold text-saffron-700 transition hover:bg-saffron-50 disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex items-center justify-center gap-2 rounded-2xl border border-orange-200 bg-white px-5 py-4 font-bold text-orange-700 transition hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <ArrowLeft size={19} />
 

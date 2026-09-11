@@ -2,41 +2,73 @@ import api from "./api";
 
 /*
  * Normalize chapter data
+ *
+ * Supports different field names returned by the API.
  */
 function normalizeChapter(chapter) {
   if (!chapter) {
     return null;
   }
 
+  const number =
+    chapter.number ??
+    chapter.chapterNumber ??
+    chapter.chapter ??
+    chapter.chapterNo ??
+    chapter.chapter_number ??
+    "";
+
   return {
     ...chapter,
 
-    number: chapter.number ?? chapter.chapterNumber,
+    number,
+    chapterNumber: number,
 
-    chapterNumber: chapter.chapterNumber ?? chapter.number,
+    sanskritName:
+      chapter.sanskritName ?? chapter.nameSanskrit ?? chapter.sanskrit ?? "",
 
-    sanskritName: chapter.sanskritName ?? chapter.nameSanskrit ?? "",
+    nameSanskrit:
+      chapter.nameSanskrit ?? chapter.sanskritName ?? chapter.sanskrit ?? "",
 
-    nameSanskrit: chapter.nameSanskrit ?? chapter.sanskritName ?? "",
+    hindiName:
+      chapter.hindiName ?? chapter.nameHindi ?? chapter.titleHindi ?? "",
 
-    hindiName: chapter.hindiName ?? chapter.nameHindi ?? "",
+    nameHindi:
+      chapter.nameHindi ?? chapter.hindiName ?? chapter.titleHindi ?? "",
 
-    nameHindi: chapter.nameHindi ?? chapter.hindiName ?? "",
+    englishName:
+      chapter.englishName ?? chapter.nameEnglish ?? chapter.titleEnglish ?? "",
 
-    englishName: chapter.englishName ?? chapter.nameEnglish ?? "",
+    nameEnglish:
+      chapter.nameEnglish ?? chapter.englishName ?? chapter.titleEnglish ?? "",
 
-    nameEnglish: chapter.nameEnglish ?? chapter.englishName ?? "",
+    totalShlokas:
+      chapter.totalShlokas ??
+      chapter.shlokaCount ??
+      chapter.totalVerses ??
+      chapter.verses ??
+      0,
 
-    totalShlokas: chapter.totalShlokas ?? chapter.shlokaCount ?? 0,
+    shlokaCount:
+      chapter.shlokaCount ??
+      chapter.totalShlokas ??
+      chapter.totalVerses ??
+      chapter.verses ??
+      0,
 
-    shlokaCount: chapter.shlokaCount ?? chapter.totalShlokas ?? 0,
+    descriptionHindi:
+      chapter.descriptionHindi ?? chapter.hindiDescription ?? "",
 
-    descriptionHindi: chapter.descriptionHindi ?? "",
-
-    descriptionEnglish: chapter.descriptionEnglish ?? "",
+    descriptionEnglish:
+      chapter.descriptionEnglish ?? chapter.englishDescription ?? "",
   };
 }
 
+/*
+ * Normalize shloka data
+ *
+ * Supports different verse number field names.
+ */
 /*
  * Normalize shloka data
  */
@@ -45,12 +77,25 @@ function normalizeShloka(shloka) {
     return null;
   }
 
+  const verseNumber =
+    shloka.verseNumber ??
+    shloka.number ??
+    shloka.verse ??
+    shloka.shlokaNumber ??
+    shloka.verse_no ??
+    null;
+
   return {
     ...shloka,
 
-    verseNumber: shloka.verseNumber ?? shloka.number ?? shloka.verse,
+    // Always expose one reliable field to the frontend
+    verseNumber: verseNumber,
 
-    sanskrit: shloka.sanskrit ?? shloka.textSanskrit ?? "",
+    number: verseNumber,
+
+    shlokaNumber: verseNumber,
+
+    sanskrit: shloka.sanskrit ?? shloka.textSanskrit ?? shloka.text ?? "",
 
     hindiMeaning:
       shloka.hindiMeaning ?? shloka.hindi ?? shloka.meaningHindi ?? "",
@@ -66,9 +111,14 @@ function normalizeShloka(shloka) {
 export async function getChapters() {
   const response = await api.get("/chapters");
 
-  const chapters = response.data?.data || response.data?.chapters || [];
+  const chapters =
+    response.data?.data ?? response.data?.chapters ?? response.data ?? [];
 
-  return chapters.map(normalizeChapter);
+  if (!Array.isArray(chapters)) {
+    return [];
+  }
+
+  return chapters.map(normalizeChapter).filter(Boolean);
 }
 
 /*
@@ -78,7 +128,7 @@ export async function getChapter(chapterNumber) {
   const response = await api.get(`/chapters/${chapterNumber}`);
 
   const chapter =
-    response.data?.data || response.data?.chapter || response.data;
+    response.data?.data ?? response.data?.chapter ?? response.data;
 
   return normalizeChapter(chapter);
 }
@@ -89,9 +139,14 @@ export async function getChapter(chapterNumber) {
 export async function getShlokas(chapterNumber) {
   const response = await api.get(`/chapters/${chapterNumber}/shlokas`);
 
-  const shlokas = response.data?.data || response.data?.shlokas || [];
+  const shlokas =
+    response.data?.data ?? response.data?.shlokas ?? response.data ?? [];
 
-  return Array.isArray(shlokas) ? shlokas.map(normalizeShloka) : [];
+  if (!Array.isArray(shlokas)) {
+    return [];
+  }
+
+  return shlokas.map(normalizeShloka).filter(Boolean);
 }
 
 /*
@@ -102,7 +157,7 @@ export async function getShloka(chapterNumber, shlokaNumber) {
     `/chapters/${chapterNumber}/shlokas/${shlokaNumber}`,
   );
 
-  const shloka = response.data?.data || response.data?.shloka || response.data;
+  const shloka = response.data?.data ?? response.data?.shloka ?? response.data;
 
   return normalizeShloka(shloka);
 }
@@ -117,7 +172,12 @@ export async function searchGita(query) {
     },
   });
 
-  const results = response.data?.data || response.data?.shlokas || [];
+  const results =
+    response.data?.data ?? response.data?.shlokas ?? response.data ?? [];
 
-  return Array.isArray(results) ? results.map(normalizeShloka) : [];
+  if (!Array.isArray(results)) {
+    return [];
+  }
+
+  return results.map(normalizeShloka).filter(Boolean);
 }
